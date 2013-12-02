@@ -1,0 +1,55 @@
+varnishtest "Test If-Modified-Since"
+
+server s1 {
+	rxreq
+	expect req.url == "/foo"
+	txresp -hdr "Last-Modified: Thu, 26 Jun 2008 12:00:01 GMT" \
+	    -hdr "ETag: foo" \
+	    -body "11111\n"
+} -start
+
+varnish v1 -vcl+backend { 
+	import test304 from "${vmod_topbuild}/src/.libs/libvmod_test304.so";
+
+	sub vcl_deliver {
+		if (test304.test304()) {
+			set resp.http.is-304 = "1";
+		}
+		else {
+			set resp.http.is-304 = "0";
+		}
+	}
+
+} -start
+
+client c1 {
+	txreq -url "/foo"
+	rxresp
+	expect resp.status == 200
+	expect resp.http.is-304 == 0
+	expect resp.http.etag == "foo"
+	expect resp.http.content-length == 6
+
+	txreq -url "/foo" \
+	    -hdr "If-Modified-Since: Thu, 26 Jun 2008 12:00:00 GMT"
+	rxresp
+	expect resp.http.is-304 == 0
+	expect resp.status == 200
+	expect resp.http.etag == "foo"
+
+	txreq -url "/foo" \
+	    -hdr "If-Modified-Since: Thu, 26 Jun 2008 12:00:01 GMT"
+	rxresp
+	expect resp.http.is-304 == 1
+	expect resp.status == 304
+	expect resp.http.etag == "foo"
+
+	txreq -url "/foo" \
+	    -hdr "If-Modified-Since: Thu, 26 Jun 2008 12:00:02 GMT"
+	rxresp
+	expect resp.http.is-304 == 1
+	expect resp.status == 304
+	expect resp.http.etag == "foo"
+} 
+
+client c1 -run
