@@ -31,9 +31,12 @@ either of the following after the call::
   
   req.http.if-modified-since
   req.http.if-none-match
-  resp.http.last-modified
-  resp.http.etag
 
+Varnish uses the headers of the fetched object (not the copy in
+resp.http.*) when deciding if it will do a 304, so stripping off
+resp.http.etag or resp.http.last-modified in vcl_deliver will prevent
+the client from seeing these, but will not prevent Varnish from
+serving a 304.
 
 FUNCTIONS
 =========
