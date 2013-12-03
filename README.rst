@@ -23,8 +23,8 @@ Lets you detect if the current response will end up as a 304 Not
 Modified. Must only be used in vcl_deliver.
 
 The 304 logic in Varnish depends on whether or not any of the relevant
-response headers were altered in vcl_deliver, so in general we can't
-know until after vcl_deliver if this response will end up as a 304.
+headers were altered in vcl_deliver, so in general we can't know until
+after vcl_deliver if this response will end up as a 304.
 
 To rely on the result from the test304() function, you must not alter
 either of the following after the call::
